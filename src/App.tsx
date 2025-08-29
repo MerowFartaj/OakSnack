@@ -28,10 +28,8 @@ const SLOTS = [
 // Categories (for tabs/filtering)
 const CATEGORIES = [
   { id: "featured", label: "Featured" },
-  { id: "hot", label: "Hot Food" },
   { id: "snacks", label: "Snacks" },
   { id: "drinks", label: "Drinks" },
-  { id: "breakfast", label: "Breakfast" },
 ];
 
 // Delivery locations

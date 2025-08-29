@@ -309,7 +309,11 @@ export default function OakwoodDashSandboxImages() {
         onOpenCheckout={() => setShowCheckout(true)}
         runnerMode={runnerMode}
         onRunnerToggle={() => setRunnerMode((m) => !m)}
-        onRunnerAuth={(pin) => { if (pin === TEAM_PIN) { setRunnerMode(true); setPinPrompt(""); } else { alert("Incorrect PIN"); } }}
+onRunnerAuth={(pin: string) => {
+  if (pin === TEAM_PIN) { setRunnerMode(true); setPinPrompt(""); }
+  else { alert("Incorrect PIN"); }
+}}
+
         pinPrompt={pinPrompt}
         setPinPrompt={setPinPrompt}
       />

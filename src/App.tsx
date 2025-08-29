@@ -1,3 +1,5 @@
+import React, { useEffect, useMemo, useState } from "react";
+import Header from "./components/Header";
 import {
   Bike,
   Clock,
@@ -12,7 +14,7 @@ import {
   Loader2,
   MapPin,
   Calendar,
-  ShoppingCart   // ← add this back
+  ShoppingCart
 } from "lucide-react";
 
 // ===============================

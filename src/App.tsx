@@ -1,3 +1,4 @@
+import { currency, shortId } from "./utils";
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";

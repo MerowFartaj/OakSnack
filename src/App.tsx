@@ -48,45 +48,57 @@ const LOCATIONS = [
 // ===============================
 // MENU (sample; add more as you like)
 // ===============================
+// Real starter menu (prices from your sheet)
 const MENU = [
-  // DRINKS
   {
-    id: "drpepper-can",
-    name: "Dr Pepper (12oz Can)",
-    price: 5.0,
-    category: "drinks",
-    desc: "Cold can from the case.",
-    tags: ["popular", "cold"],
-    image: "https://placehold.co/400x240?text=Dr+Pepper",
+    id: "oreos-pack",
+    name: "Oreos (Snack Pack)",
+    price: 2.50,
+    category: "snacks",
+    desc: "Mini sleeve of Oreos.",
+    tags: ["popular"],
+    image: "https://placehold.co/400x240?text=Oreos",
+    stock: 30, // starting stock
   },
-  {
-    id: "gatorade-bottle",
-    name: "Gatorade (Assorted)",
-    price: 4.0,
-    category: "drinks",
-    desc: "Assorted flavors from the case.",
-    options: [{ key: "flavor", label: "Flavor", choices: ["Blue", "Red", "Yellow", "Orange"] }],
-    image: "https://placehold.co/400x240?text=Gatorade",
-  },
-
-  // SNACKS
   {
     id: "hot-cheetos",
     name: "Hot Cheetos (Snack Bag)",
-    price: 4.0,
+    price: 3.80,
     category: "snacks",
     desc: "Spicy, crunchy, elite.",
     tags: ["best-seller"],
     image: "https://placehold.co/400x240?text=Hot+Cheetos",
+    stock: 50,
   },
   {
-    id: "doritos",
-    name: "Doritos (Snack Bag)",
-    price: 4.0,
+    id: "drpepper-can",
+    name: "Dr Pepper (12oz Can)",
+    price: 2.00,
+    category: "drinks",
+    desc: "Cold can from the case.",
+    tags: ["cold"],
+    image: "https://placehold.co/400x240?text=Dr+Pepper",
+    stock: 12,
+  },
+  {
+    id: "trident-spearmint",
+    name: "Trident Spearmint (14ct Pack)",
+    price: 1.50,
     category: "snacks",
-    desc: "Your choice of flavor.",
-    options: [{ key: "flavor", label: "Flavor", choices: ["Nacho Cheese", "Cool Ranch"] }],
-    image: "https://placehold.co/400x240?text=Doritos",
+    desc: "Sugar-free gum, 14 pieces.",
+    image: "https://placehold.co/400x240?text=Trident+Spearmint",
+    stock: 15,
+    // Reference: https://www.costco.com/trident-sugar-free-gum-spearmint-14-count-15-pack.product.100385472.html
+  },
+  {
+    id: "nerds-gummy-clusters",
+    name: "Nerds Gummy Clusters (3oz Pouch)",
+    price: 3.50,
+    category: "snacks",
+    desc: "Rainbow share pouch.",
+    image: "https://placehold.co/400x240?text=Nerds+Gummy+Clusters",
+    stock: 12,
+    // Reference: https://www.costco.com/nerds-candy-gummy-clusters-rainbow-share-pouch-3-oz-12-count.product.4000112558.html
   },
 ];
 

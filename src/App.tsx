@@ -1,3 +1,4 @@
+import MenuCard from "./components/MenuCard";
 import Hero from "./components/Hero";
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";

@@ -1,5 +1,3 @@
-import Header from "./components/Header";
-import React, { useEffect, useMemo, useState } from "react";
 import {
   Bike,
   Clock,
@@ -13,7 +11,8 @@ import {
   CheckCircle,
   Loader2,
   MapPin,
-  Calendar
+  Calendar,
+  ShoppingCart   // ← add this back
 } from "lucide-react";
 
 // ===============================
@@ -223,6 +222,14 @@ function saveOrders(orders: any[]) { localStorage.setItem(LS_ORDERS, JSON.string
 // ===============================
 // MAIN APP
 // ===============================
+function Hero({ onStartOrder }: { onStartOrder: () => void }) {
+  return (
+    <section className="relative overflow-hidden">
+      {/* …all the Hero JSX … */}
+    </section>
+  );
+}
+
 export default function OakwoodDashSandboxImages() {
   const [cart, setCart] = useState<any[]>([]);
   const [query, setQuery] = useState("");

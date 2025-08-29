@@ -1,29 +1,31 @@
-import { currency, shortId } from "./utils";
 import React, { useEffect, useMemo, useState } from "react";
+
+// Split components
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import MenuCard from "./components/MenuCard";
-import {
-  Bike,
-  Search,
-  Filter,
-  Calendar,
-  MapPin,
-} from "lucide-react";
+import CartDock from "./components/CartDock";
+import CheckoutModal from "./components/CheckoutModal";
+
+// Utils
+import { currency, shortId } from "./utils";
+
+// Icons used in this file (others live inside split components)
+import { Search, Filter, Package, Calendar, MapPin, Bike } from "lucide-react";
 
 // ===============================
-// OakwoodDash — SANDBOX (Junk Food + Images)
-// ===============================
-
 // CONFIG
-const TEAM_PIN = "4242";
-const SERVICE_FEE = 1.0;
-const PER_SLOT_CAPACITY = 12;
+// ===============================
+const TEAM_PIN = "4242";           // Runner dashboard PIN
+const SERVICE_FEE = 1.0;           // USD flat fee per order
+const PER_SLOT_CAPACITY = 12;      // Not enforced yet, just displayed
 
+// One slot for now (you asked to keep only HS Lunch)
 const SLOTS = [
   { id: "HS_LUNCH", label: "High School Lunch" },
 ];
 
+// Categories (for tabs/filtering)
 const CATEGORIES = [
   { id: "featured", label: "Featured" },
   { id: "hot", label: "Hot Food" },
@@ -32,6 +34,7 @@ const CATEGORIES = [
   { id: "breakfast", label: "Breakfast" },
 ];
 
+// Delivery locations
 const LOCATIONS = [
   "Main Quad",
   "Library Patio",
@@ -43,7 +46,7 @@ const LOCATIONS = [
 ];
 
 // ===============================
-// MENU (sample items — add more later)
+// MENU (sample; add more as you like)
 // ===============================
 const MENU = [
   // DRINKS
@@ -57,14 +60,15 @@ const MENU = [
     image: "https://placehold.co/400x240?text=Dr+Pepper",
   },
   {
-    id: "coke-can",
-    name: "Coke (12oz Can)",
-    price: 5.0,
+    id: "gatorade-bottle",
+    name: "Gatorade (Assorted)",
+    price: 4.0,
     category: "drinks",
-    desc: "Classic Coca-Cola.",
-    tags: ["cold"],
-    image: "https://placehold.co/400x240?text=Coke",
+    desc: "Assorted flavors from the case.",
+    options: [{ key: "flavor", label: "Flavor", choices: ["Blue", "Red", "Yellow", "Orange"] }],
+    image: "https://placehold.co/400x240?text=Gatorade",
   },
+
   // SNACKS
   {
     id: "hot-cheetos",
@@ -81,39 +85,49 @@ const MENU = [
     price: 4.0,
     category: "snacks",
     desc: "Your choice of flavor.",
-    options: [
-      { key: "flavor", label: "Flavor", choices: ["Nacho Cheese", "Cool Ranch"] },
-    ],
+    options: [{ key: "flavor", label: "Flavor", choices: ["Nacho Cheese", "Cool Ranch"] }],
     image: "https://placehold.co/400x240?text=Doritos",
   },
 ];
 
 // ===============================
-// UTILITIES (local + tiny storage)
+// LOCAL STORAGE (orders)
 // ===============================
-function slotLabel(id: string) {
-  return SLOTS.find((s) => s.id === id)?.label || id;
-}
 const LS_ORDERS = "owdash_orders_v1_sandbox_images";
 function loadOrders() {
-  try { const raw = localStorage.getItem(LS_ORDERS); return raw ? JSON.parse(raw) : []; } catch { return []; }
+  try {
+    const raw = localStorage.getItem(LS_ORDERS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
-function saveOrders(orders: any[]) { localStorage.setItem(LS_ORDERS, JSON.stringify(orders)); }
+function saveOrders(orders: any[]) {
+  localStorage.setItem(LS_ORDERS, JSON.stringify(orders));
+}
 
 // ===============================
 // MAIN APP
 // ===============================
 export default function OakwoodDashSandboxImages() {
+  // Cart & UI state
   const [cart, setCart] = useState<any[]>([]);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("featured");
+
+  // Checkout / runner
+  const [showCheckout, setShowCheckout] = useState(false);
   const [orders, setOrders] = useState<any[]>(loadOrders());
   const [runnerMode, setRunnerMode] = useState(false);
   const [pinPrompt, setPinPrompt] = useState("");
 
+  // Status lookup (optional — UI added below)
+  const [statusLookup, setStatusLookup] = useState("");
+  const [statusResult, setStatusResult] = useState<any | null>(null);
+
   useEffect(() => saveOrders(orders), [orders]);
 
-  // Filter menu by search + category
+  // Filtered menu
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return MENU.filter((m) => {
@@ -121,54 +135,133 @@ export default function OakwoodDashSandboxImages() {
         !q ||
         m.name.toLowerCase().includes(q) ||
         m.desc?.toLowerCase().includes(q) ||
-        (m.tags || []).some((t) => t.toLowerCase().includes(q));
+        (m.tags || []).some((t: string) => t.toLowerCase().includes(q));
       const matchesCat = tab === "featured" ? true : m.category === tab;
       return matchesText && matchesCat;
     });
   }, [query, tab]);
 
-  // 👉 Add items to cart (this is the one you needed “above the return”)
+  // Totals
+  const subtotal = useMemo(() => cart.reduce((s, it) => s + it.price * it.qty, 0), [cart]);
+  const total = useMemo(() => subtotal + (cart.length ? SERVICE_FEE : 0), [subtotal, cart]);
+
+  // Cart ops
   function addToCart(item: any, selected: any = {}) {
     setCart((c) => {
       const key = `${item.id}-${JSON.stringify(selected)}`;
-      const idx = c.findIndex((ci: any) => ci.key === key);
+      const idx = c.findIndex((ci) => ci.key === key);
       if (idx >= 0) {
         const copy = [...c];
         copy[idx] = { ...copy[idx], qty: copy[idx].qty + 1 };
         return copy;
-      }
+    }
       return [...c, { key, id: item.id, name: item.name, price: item.price, options: selected, qty: 1 }];
     });
+  }
+  function updateQty(key: string, delta: number) {
+    setCart((c) =>
+      c
+        .map((it) => (it.key === key ? { ...it, qty: Math.max(1, it.qty + delta) } : it))
+        .filter((it) => it.qty > 0)
+    );
+  }
+  function removeLine(key: string) {
+    setCart((c) => c.filter((it) => it.key !== key));
+  }
+
+  // Orders
+  function handlePlaceOrder(payload: any) {
+    const id = shortId();
+    const today = new Date();
+    const order = {
+      id,
+      createdAt: today.toISOString(),
+      dayKey: today.toDateString(),
+      items: cart,
+      subtotal,
+      fee: SERVICE_FEE,
+      total,
+      customer: payload.customer,
+      slot: payload.slot,     // { id, label, time? }
+      location: payload.location,
+      notes: payload.notes,
+      payment: payload.payment,
+      status: "Queued",
+    };
+    setOrders((prev) => [order, ...prev]);
+    setCart([]);
+    setShowCheckout(false);
+    setStatusResult(order); // show the just-placed order in status box
+  }
+
+  function lookupStatus(token: string) {
+    const byId = orders.find((o) => o.id.toUpperCase() === token.toUpperCase());
+    if (byId) return setStatusResult(byId);
+    const byEmail = orders.find((o) => o.customer.email?.toLowerCase() === token.toLowerCase());
+    if (byEmail) return setStatusResult(byEmail);
+    setStatusResult(null);
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-slate-800">
-      {/* HEADER */}
+      {/* Header */}
       <Header
         cartCount={cart.reduce((n, i) => n + i.qty, 0)}
-        onOpenCheckout={() => alert("Checkout coming soon")}
+        onOpenCheckout={() => setShowCheckout(true)}
         runnerMode={runnerMode}
         onRunnerToggle={() => setRunnerMode((m) => !m)}
         onRunnerAuth={(pin: string) => {
-          if (pin === TEAM_PIN) { setRunnerMode(true); setPinPrompt(""); }
-          else { alert("Incorrect PIN"); }
+          if (pin === TEAM_PIN) {
+            setRunnerMode(true);
+            setPinPrompt("");
+          } else {
+            alert("Incorrect PIN");
+          }
         }}
         pinPrompt={pinPrompt}
         setPinPrompt={setPinPrompt}
       />
 
-      {/* HERO */}
+      {/* Hero */}
       <Hero
         onStartOrder={() => {
           document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
         }}
       />
 
-      {/* MAIN */}
       <main className="container mx-auto px-4 pb-28">
+        {/* How it works */}
         <HowItWorks />
 
-        {/* MENU + SEARCH */}
+        {/* Status lookup */}
+        <section id="status" className="mt-12">
+          <div className="rounded-2xl border bg-white/90 shadow-lg">
+            <div className="p-4 border-b flex items-center gap-2 text-slate-700 font-semibold">
+              <Package className="h-5 w-5" /> Check your order status
+            </div>
+            <div className="p-4 flex flex-col md:flex-row items-center gap-3">
+              <input
+                className="w-full md:w-auto flex-1 rounded-xl border px-3 py-2"
+                placeholder="Enter Order ID (e.g., OW-ABC123) or your email"
+                value={statusLookup}
+                onChange={(e) => setStatusLookup(e.target.value)}
+              />
+              <button
+                onClick={() => lookupStatus(statusLookup)}
+                className="rounded-xl px-4 py-2 bg-indigo-600 text-white"
+              >
+                Lookup
+              </button>
+            </div>
+            {statusResult && (
+              <div className="px-4 pb-4">
+                <OrderStatusCard order={statusResult} />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Menu */}
         <section id="menu" className="mt-16">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
             <div className="flex items-center gap-3 w-full">
@@ -191,10 +284,8 @@ export default function OakwoodDashSandboxImages() {
             </div>
           </div>
 
-          {/* Tabs */}
           <TabsSimple value={tab} onChange={setTab} tabs={CATEGORIES} />
 
-          {/* Menu grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
             {filtered.map((item) => (
               <MenuCard key={item.id} item={item} onAdd={addToCart} />
@@ -203,52 +294,46 @@ export default function OakwoodDashSandboxImages() {
         </section>
       </main>
 
-      <Footer />
+      {/* Cart dock */}
+      <CartDock
+        cart={cart}
+        subtotal={subtotal}
+        fee={SERVICE_FEE}
+        total={total}
+        onQty={updateQty}
+        onRemove={removeLine}
+        onCheckout={() => setShowCheckout(true)}
+      />
+
+      {/* Checkout modal */}
+      {showCheckout && (
+        <CheckoutModal
+          onClose={() => setShowCheckout(false)}
+          total={total}
+          fee={SERVICE_FEE}
+          subtotal={subtotal}
+          cart={cart}
+          onPlace={handlePlaceOrder}
+          slots={SLOTS}         // single slot for now
+          locations={LOCATIONS}
+        />
+      )}
     </div>
   );
 }
 
 // ===============================
-// SIMPLE TABS
-// ===============================
-function TabsSimple({
-  value,
-  onChange,
-  tabs,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  tabs: { id: string; label: string }[];
-}) {
-  return (
-    <div className="inline-grid grid-cols-3 md:grid-cols-5 rounded-xl border bg-white overflow-hidden">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          className={`px-3 py-2 text-sm ${
-            value === t.id ? "bg-indigo-600 text-white" : "hover:bg-slate-50"
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ===============================
-// HOW IT WORKS
+// SUPPORTING UI IN THIS FILE
 // ===============================
 function HowItWorks() {
   const steps = [
     { icon: <Search className="h-5 w-5" />, title: "Pick your items", text: "Browse the menu and add to cart." },
-    { icon: <Calendar className="h-5 w-5" />, title: "Choose a time", text: "ASAP, Nutrition, Lunch, or custom slot." },
+    { icon: <Calendar className="h-5 w-5" />, title: "Choose a time", text: "High School Lunch (for now)." },
     { icon: <MapPin className="h-5 w-5" />, title: "Drop a location", text: "Tell us where on campus to meet you." },
     { icon: <Bike className="h-5 w-5" />, title: "We deliver", text: "We queue, pick up, and deliver to you fast." },
   ];
   return (
-    <section id="how" className="container mx-auto px-4 mt-12">
+    <section id="how" className="container mx-auto px-4">
       <div className="grid md:grid-cols-4 gap-4">
         {steps.map((s, i) => (
           <div key={i} className="p-5 rounded-2xl bg-white border shadow-sm">
@@ -265,23 +350,61 @@ function HowItWorks() {
   );
 }
 
-// ===============================
-// FOOTER
-// ===============================
-function Footer() {
+function TabsSimple({
+  value,
+  onChange,
+  tabs,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  tabs: { id: string; label: string }[];
+}) {
   return (
-    <footer className="mt-20 border-t bg-white/70">
-      <div className="container mx-auto px-4 py-8 text-sm text-slate-600">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div>
-            © {new Date().getFullYear()} OakwoodDash — Student-run. Not affiliated with Oakwood School.
+    <div className="inline-grid grid-cols-3 md:grid-cols-5 rounded-xl border bg-white overflow-hidden">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onChange(t.id)}
+          className={`px-3 py-2 text-sm ${value === t.id ? "bg-indigo-600 text-white" : "hover:bg-slate-50"}`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function OrderStatusCard({ order }: { order: any }) {
+  const steps = ["Queued", "In Progress", "Ready", "Delivered"];
+  const idx = steps.findIndex((s) => s === order.status);
+  return (
+    <div className="rounded-2xl border bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="font-semibold text-slate-800 flex items-center gap-2">
+          <Package className="h-4 w-4" /> Order <span className="text-indigo-600">{order.id}</span>
+        </div>
+        <span className="rounded-full bg-indigo-600 text-white text-xs px-2 py-1">{order.status}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        {steps.map((s, i) => (
+          <div key={s} className={`p-2 rounded-xl border ${i <= idx ? "bg-indigo-50 border-indigo-200" : "bg-slate-50"}`}>
+            <div className="font-medium">{s}</div>
+            <div className="text-slate-500">{i < idx ? "Done" : i === idx ? "Current" : "Pending"}</div>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="#how" className="hover:text-indigo-600">How it works</a>
-            <a href="#menu" className="hover:text-indigo-600">Menu</a>
-          </div>
+        ))}
+      </div>
+      <div className="mt-3 text-sm text-slate-600 flex flex-wrap gap-3">
+        <div>
+          <strong>Time:</strong> {order.slot.label}
+          {order.slot.time ? ` • ${order.slot.time}` : ""}
+        </div>
+        <div>
+          <strong>Deliver to:</strong> {order.location}
+        </div>
+        <div>
+          <strong>Name:</strong> {order.customer.name} (Grade {order.customer.grade})
         </div>
       </div>
-    </footer>
+    </div>
   );
 }

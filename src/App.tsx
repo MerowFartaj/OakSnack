@@ -21,10 +21,7 @@ const SERVICE_FEE = 1.0;
 const PER_SLOT_CAPACITY = 12;
 
 const SLOTS = [
-  { id: "ASAP", label: "ASAP (next available)" },
-  { id: "NUTRITION", label: "Nutrition Break" },
-  { id: "LUNCH", label: "Lunch" },
-  { id: "CUSTOM", label: "Choose a time…" },
+  { id: "HS_LUNCH", label: "High School Lunch" },
 ];
 
 const CATEGORIES = [

@@ -1,3 +1,4 @@
+import Hero from "./components/Hero";
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import {
@@ -100,24 +101,6 @@ function loadOrders() {
 }
 function saveOrders(orders: any[]) { 
   localStorage.setItem(LS_ORDERS, JSON.stringify(orders)); 
-}
-
-// ===============================
-// HERO
-// ===============================
-function Hero({ onStartOrder }: { onStartOrder: () => void }) {
-  return (
-    <section className="relative overflow-hidden bg-indigo-100 py-12 text-center">
-      <h1 className="text-3xl font-extrabold text-indigo-700">Welcome to OakwoodDash</h1>
-      <p className="mt-2 text-slate-600">Order your favorite snacks & drinks, delivered by students 🚴</p>
-      <button 
-        onClick={onStartOrder} 
-        className="mt-4 rounded-xl bg-indigo-600 text-white px-6 py-2 font-semibold hover:bg-indigo-700"
-      >
-        Start Ordering
-      </button>
-    </section>
-  );
 }
 
 // ===============================

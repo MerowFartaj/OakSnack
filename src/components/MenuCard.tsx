@@ -9,7 +9,7 @@ export default function MenuCard({
   renderImage,
 }: {
   item: any;
-  onAdd: () => void;
+  onAdd: (item: any, selected?: any) => void;
   renderImage?: (src: string, alt: string) => React.ReactNode;
 }) {
   return (

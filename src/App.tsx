@@ -423,7 +423,7 @@ export default function OakSnackApp() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
             {filtered.map((item) => (
-              <MenuCard key={item.id} item={item} onAdd={addToCart} />
+      <MenuCard key={item.id} item={item} onAdd={(selected) => addToCart(item, selected)} />
             ))}
           </div>
         </section>

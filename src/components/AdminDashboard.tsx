@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Trash2, CheckCircle, XCircle, RotateCcw, Plus, Minus, Save } from "lucide-react";
+import { Trash2, CheckCircle, XCircle, RotateCcw, Plus, Minus, Save, LogOut } from "lucide-react";
 import { currency } from "../utils";
 
 type OrderStatus =
@@ -44,6 +44,7 @@ export default function AdminDashboard({
   onRefund,
   onDelete,
   onAdjust,
+  onExit,              // ← NEW
 }: {
   products: Product[];
   stock: Record<string, number>;
@@ -60,6 +61,7 @@ export default function AdminDashboard({
   onRefund: (id: string) => void;
   onDelete: (id: string) => void;
   onAdjust: (delta: number) => void;
+  onExit: () => void;  // ← NEW
 }) {
   const counts = useMemo(() => {
     const c: Record<OrderStatus, number> = {
@@ -74,16 +76,24 @@ export default function AdminDashboard({
     return c;
   }, [orders]);
 
-  // temp inputs for direct stock edit
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   return (
     <section className="container mx-auto px-4 py-10 space-y-8">
-      <div>
-        <h2 className="text-2xl font-extrabold">Runner Dashboard</h2>
-        <p className="text-slate-600 mt-1">
-          Update inventory & order statuses. Revenue auto-calculates on delivered orders.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-extrabold">Runner Dashboard</h2>
+          <p className="text-slate-600 mt-1">
+            Update inventory & order statuses. Revenue auto-calculates on delivered orders.
+          </p>
+        </div>
+        <button
+          onClick={onExit}
+          className="rounded-xl border px-3 py-2 text-sm flex items-center gap-2"
+          title="Exit to main site"
+        >
+          <LogOut className="h-4 w-4" /> Exit
+        </button>
       </div>
 
       {/* KPIs */}

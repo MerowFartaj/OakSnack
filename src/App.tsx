@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Header from "./Header";
-import Hero from "./Hero";
-import MenuCard from "./MenuCard";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import MenuCard from "./components/MenuCard";
 import {
   Bike,
   Filter,
@@ -17,7 +17,7 @@ import {
   ShoppingCart,
   LogOut
 } from "lucide-react";
-import { currency, shortId } from "../utils";
+import { currency, shortId } from "./utils";
 
 /** =============================
  *  BASIC CONFIG

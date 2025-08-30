@@ -1,5 +1,6 @@
+// src/components/CheckoutModal.tsx
 import React, { useState } from "react";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 import { currency } from "../utils";
 
 const LOCATIONS = [
@@ -12,47 +13,39 @@ const LOCATIONS = [
   "College Counseling",
 ];
 
-export type CheckoutPayload = {
-  customer: { name: string; grade: string; email: string };
-  location: string;
-  payment: string;
-  slot: { id: string; label: string };
-};
-
 export default function CheckoutModal({
+  onClose,
   cart,
   subtotal,
   fee,
   total,
-  onClose,
   onPlace,
 }: {
-  cart: { key: string; id: string; name: string; price: number; qty: number }[];
+  onClose: () => void;
+  cart: any[];
   subtotal: number;
   fee: number;
   total: number;
-  onClose: () => void;
-  onPlace: (payload: CheckoutPayload) => void;
+  onPlace: (payload: any) => void;
 }) {
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("9");
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState(LOCATIONS[0]);
-  const [payment, setPayment] = useState("Cash");
+  const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
 
   function place() {
-    if (!name.trim()) { alert("Please enter your name"); return; }
+    if (!cart || cart.length === 0) return;
+    if (!name.trim()) {
+      alert("Please enter your name");
+      return;
+    }
     setPlacing(true);
     setTimeout(() => {
-      onPlace({
-        customer: { name, grade, email },
-        location,
-        payment,
-        slot: { id: "LUNCH", label: "High School Lunch" },
-      });
+      onPlace({ name, grade, email, location, notes });
       setPlacing(false);
-    }, 300);
+    }, 400);
   }
 
   return (
@@ -69,27 +62,53 @@ export default function CheckoutModal({
             <div className="font-semibold mb-2">Delivery details</div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <input className="rounded-xl border px-3 py-2" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} />
-                <select className="rounded-xl border px-3 py-2" value={grade} onChange={(e)=>setGrade(e.target.value)}>
-                  {(["9","10","11","12"]).map((g)=> <option key={g} value={g}>Grade {g}</option>)}
+                <input
+                  className="rounded-xl border px-3 py-2"
+                  placeholder="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <select
+                  className="rounded-xl border px-3 py-2"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                >
+                  {["9", "10", "11", "12"].map((g) => (
+                    <option key={g} value={g}>
+                      Grade {g}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <input className="rounded-xl border px-3 py-2 w-full" placeholder="Email (for status lookup)" value={email} onChange={(e) => setEmail(e.target.value)} />
+
+              <input
+                className="rounded-xl border px-3 py-2 w-full"
+                placeholder="Email (optional, for status lookup)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
               <div className="grid grid-cols-2 gap-2 items-center">
                 <label className="text-sm">Delivery spot</label>
-                <select className="rounded-xl border px-3 py-2" value={location} onChange={(e)=>setLocation(e.target.value)}>
-                  {LOCATIONS.map((l)=> <option key={l} value={l}>{l}</option>)}
+                <select
+                  className="rounded-xl border px-3 py-2"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                >
+                  {LOCATIONS.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-2 items-center">
-                <label className="text-sm">Pay with</label>
-                <select className="rounded-xl border px-3 py-2" value={payment} onChange={(e)=>setPayment(e.target.value)}>
-                  {['Cash','Apple Pay (in-person)','Venmo'].map((p)=> <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div className="text-[11px] text-slate-500">
-                By placing an order, you agree this is a student-run service. On-campus delivery only. 🙏
-              </div>
+
+              <textarea
+                className="rounded-xl border px-3 py-2 w-full"
+                placeholder="Notes (allergies, extra sauce, etc.)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </div>
           </div>
 
@@ -97,17 +116,24 @@ export default function CheckoutModal({
             <div className="font-semibold mb-2">Order summary</div>
             <div className="space-y-3">
               <div className="rounded-xl border bg-white divide-y">
-                {cart.map((line) => (
-                  <div key={line.key} className="p-3 text-sm flex items-start justify-between gap-3">
+                {cart.map((line: any) => (
+                  <div
+                    key={line.key}
+                    className="p-3 text-sm flex items-start justify-between gap-3"
+                  >
                     <div>
                       <div className="font-medium">
-                        {line.name} <span className="text-slate-500">×{line.qty}</span>
+                        {line.name}{" "}
+                        <span className="text-slate-500">×{line.qty}</span>
                       </div>
                     </div>
-                    <div className="text-slate-700">{currency(line.price * line.qty)}</div>
+                    <div className="text-slate-700">
+                      {currency(line.price * line.qty)}
+                    </div>
                   </div>
                 ))}
               </div>
+
               <div className="flex items-center justify-between text-sm">
                 <span>Subtotal</span>
                 <span>{currency(subtotal)}</span>
@@ -120,15 +146,27 @@ export default function CheckoutModal({
                 <span>Total</span>
                 <span>{currency(total)}</span>
               </div>
+
               <button
-                className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 justify-center ${placing? 'bg-slate-300 text-slate-600':'bg-indigo-600 text-white'}`}
+                className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 justify-center ${
+                  placing ? "bg-slate-300 text-slate-600" : "bg-indigo-600 text-white"
+                }`}
                 disabled={placing}
                 onClick={place}
               >
-                {placing ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="h-4 w-4"/>}
+                {placing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
                 {placing ? "Placing…" : "Place order"}
               </button>
-              <button className="w-full rounded-xl px-3 py-2 border" onClick={onClose}>Cancel</button>
+              <button
+                className="w-full rounded-xl px-3 py-2 border"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

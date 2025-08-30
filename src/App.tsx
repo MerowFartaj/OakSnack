@@ -48,7 +48,7 @@ const LOCATIONS = [
 ];
 
 // ===============================
-// MENU (with real product images)
+// MENU (with real images in /public)
 // ===============================
 const MENU = [
   // Drinks
@@ -59,7 +59,7 @@ const MENU = [
     category: "drinks",
     desc: "Cold can from the case.",
     tags: ["cold"],
-    image: "/products/drpepper.jpg",
+    image: "/drpepper.jpg",
   },
   // Snacks
   {
@@ -68,7 +68,7 @@ const MENU = [
     price: 2.5,
     category: "snacks",
     desc: "Mini sleeve of Oreos.",
-    image: "/products/oreo.jpg",
+    image: "/oreo.jpg",
   },
   {
     id: "hot-cheetos",
@@ -77,7 +77,7 @@ const MENU = [
     category: "snacks",
     desc: "Spicy, crunchy, elite.",
     tags: ["best-seller"],
-    image: "/products/cheetos.jpg",
+    image: "/cheetos.jpg",
   },
   {
     id: "trident-spearmint",
@@ -85,7 +85,7 @@ const MENU = [
     price: 1.5,
     category: "snacks",
     desc: "Fresh breath on deck.",
-    image: "/products/trident.jpg",
+    image: "/trident.jpg",
   },
   {
     id: "nerds-gummy",
@@ -93,7 +93,7 @@ const MENU = [
     price: 2.99,
     category: "snacks",
     desc: "Rainbow clusters. Crunch then chew.",
-    image: "/products/nerds.jpg",
+    image: "/nerds.jpg",
   },
 ];
 

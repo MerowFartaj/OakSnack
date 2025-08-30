@@ -19,6 +19,20 @@ import {
 } from "lucide-react";
 import { currency, shortId } from "./utils";
 
+// ===============================
+// INVENTORY CONFIG
+// ===============================
+
+const START_STOCK: Record<string, number> = {
+  "drpepper-can": 12,
+  "oreos-snack": 30,
+  "hot-cheetos": 50,
+  "trident-spearmint": 15,
+  "nerds-gummy": 12,
+};
+
+const LS_INV = "oakSnack_inv_v1"; // localStorage key for persisting inventory
+
 /** =============================
  *  BASIC CONFIG
  *  ============================= */

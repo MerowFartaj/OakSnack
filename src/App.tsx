@@ -6,22 +6,15 @@ import AdminDashboard from "./components/AdminDashboard";
 import { currency, shortId } from "./utils";
 import { Search, Calendar, MapPin, Bike } from "lucide-react";
 
-// ===============================
-// CONFIG
-// ===============================
 const TEAM_PIN = "4242";
-const SERVICE_FEE = 0; // cart dock already shows fee — set to 0 for now
+const SERVICE_FEE = 0;
 
-// categories shown in the tab bar
 const CATEGORIES = [
   { id: "featured", label: "Featured" },
   { id: "snacks", label: "Snacks" },
   { id: "drinks", label: "Drinks" },
 ];
 
-// ===============================
-// MENU (images from /public/products)
-// ===============================
 const MENU = [
   {
     id: "drpepper-can",
@@ -70,9 +63,6 @@ const MENU = [
   },
 ];
 
-// ===============================
-// ORDER TYPES
-// ===============================
 type OrderStatus =
   | "new"
   | "preparing"
@@ -81,13 +71,7 @@ type OrderStatus =
   | "canceled"
   | "refunded";
 
-type OrderItem = {
-  id: string;
-  name: string;
-  qty: number;
-  price: number;
-};
-
+type OrderItem = { id: string; name: string; qty: number; price: number };
 type Order = {
   id: string;
   items: OrderItem[];
@@ -97,9 +81,6 @@ type Order = {
   email?: string | null;
 };
 
-// ===============================
-// LS KEYS + helpers
-// ===============================
 const LS_ORDERS = "owdash_orders_v2";
 const LS_STOCK = "owdash_stock_v1";
 const LS_ADJ = "owdash_revenue_adjustments_v1";
@@ -113,28 +94,20 @@ const loadJSON = <T,>(k: string, fallback: T): T => {
   }
 };
 
-// ===============================
-// APP
-// ===============================
 export default function App() {
-  // --- cart
   type CartLine = { key: string; id: string; name: string; price: number; qty: number };
   const [cart, setCart] = useState<CartLine[]>([]);
   const [showCheckout, setShowCheckout] = useState(false);
 
-  // --- UI
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("featured");
 
-  // --- auth/runner
   const [runnerMode, setRunnerMode] = useState(false);
   const [pinPrompt, setPinPrompt] = useState("");
 
-  // --- orders
   const [orders, setOrders] = useState<Order[]>(() => loadJSON<Order[]>(LS_ORDERS, []));
   useEffect(() => localStorage.setItem(LS_ORDERS, JSON.stringify(orders)), [orders]);
 
-  // --- stock
   const initialStock: Record<string, number> = (() => {
     const fromLS = loadJSON<Record<string, number> | null>(LS_STOCK, null);
     if (fromLS) return fromLS;
@@ -145,7 +118,6 @@ export default function App() {
   const [stock, setStock] = useState<Record<string, number>>(initialStock);
   useEffect(() => localStorage.setItem(LS_STOCK, JSON.stringify(stock)), [stock]);
 
-  // --- revenue adjustments
   const [adjustments, setAdjustments] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(LS_ADJ);
@@ -156,23 +128,16 @@ export default function App() {
   });
   useEffect(() => localStorage.setItem(LS_ADJ, String(adjustments)), [adjustments]);
 
-  // --- computed
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return MENU.filter((m) => {
-      const matchText =
-        !q ||
-        m.name.toLowerCase().includes(q) ||
-        m.desc.toLowerCase().includes(q);
+      const matchText = !q || m.name.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q);
       const matchCat = tab === "featured" ? true : m.category === tab;
       return matchText && matchCat;
     });
   }, [query, tab]);
 
-  const subtotal = useMemo(
-    () => cart.reduce((s, it) => s + it.price * it.qty, 0),
-    [cart]
-  );
+  const subtotal = useMemo(() => cart.reduce((s, it) => s + it.price * it.qty, 0), [cart]);
   const total = useMemo(() => subtotal + (cart.length ? SERVICE_FEE : 0), [subtotal, cart]);
 
   const revenueDelivered = useMemo(
@@ -181,9 +146,6 @@ export default function App() {
   );
   const netRevenue = useMemo(() => revenueDelivered + adjustments, [revenueDelivered, adjustments]);
 
-  // ===============================
-  // Cart helpers
-  // ===============================
   const inCartQty = (id: string) => cart.filter(c => c.id === id).reduce((s, c) => s + c.qty, 0);
 
   const addToCart = (m: (typeof MENU)[number]) => {
@@ -195,9 +157,7 @@ export default function App() {
     }
     setCart(prev => {
       const existing = prev.find(l => l.id === m.id);
-      if (existing) {
-        return prev.map(l => l.id === m.id ? { ...l, qty: l.qty + 1 } : l);
-      }
+      if (existing) return prev.map(l => l.id === m.id ? { ...l, qty: l.qty + 1 } : l);
       return [...prev, { key: `${m.id}`, id: m.id, name: m.name, price: m.price, qty: 1 }];
     });
     setShowCheckout(true);
@@ -213,13 +173,9 @@ export default function App() {
 
   const onRemove = (key: string) => setCart(prev => prev.filter(l => l.key !== key));
 
-  // ===============================
-  // Checkout -> create order + decrement stock
-  // ===============================
   const onCheckout = () => {
     if (cart.length === 0) return;
 
-    // Validate stock again
     for (const line of cart) {
       const available = stock[line.id] ?? 0;
       if (line.qty > available) {
@@ -228,7 +184,6 @@ export default function App() {
       }
     }
 
-    // Create order
     const order: Order = {
       id: shortId(),
       items: cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price })),
@@ -239,23 +194,19 @@ export default function App() {
     };
     setOrders(prev => [order, ...prev]);
 
-    // Decrement stock
     setStock(prev => {
       const next = { ...prev };
       for (const line of cart) next[line.id] = (next[line.id] ?? 0) - line.qty;
       return next;
     });
 
-    // reset cart
     setCart([]);
     setShowCheckout(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
     alert(`Order placed! Your ID is ${order.id}`);
   };
 
-  // ===============================
-  // Admin actions
-  // ===============================
+  // admin actions
   const addAdjustment = (delta: number) => setAdjustments(prev => +(prev + delta).toFixed(2));
   const setOrderStatus = (id: string, status: OrderStatus) =>
     setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));
@@ -264,9 +215,12 @@ export default function App() {
   const refundOrder   = (id: string) => setOrderStatus(id, "refunded");
   const deleteOrder   = (id: string) => setOrders(prev => prev.filter(o => o.id !== id));
 
-  // ===============================
-  // UI
-  // ===============================
+  // inventory adjust handlers
+  const incStock = (id: string, n = 1) => setStock(prev => ({ ...prev, [id]: (prev[id] ?? 0) + n }));
+  const decStock = (id: string, n = 1) => setStock(prev => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) - n) }));
+  const setStockTo = (id: string, qty: number) =>
+    setStock(prev => ({ ...prev, [id]: Math.max(0, Math.floor(qty)) }));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-slate-800">
       <Header
@@ -284,6 +238,11 @@ export default function App() {
 
       {runnerMode ? (
         <AdminDashboard
+          products={MENU.map(m => ({ id: m.id, name: m.name }))}
+          stock={stock}
+          onIncStock={incStock}
+          onDecStock={decStock}
+          onSetStock={setStockTo}
           revenueDelivered={revenueDelivered}
           adjustments={adjustments}
           netRevenue={netRevenue}
@@ -300,7 +259,6 @@ export default function App() {
           <Hero onStartOrder={() => document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" })} />
 
           <main className="container mx-auto px-4 pb-36">
-            {/* How it works */}
             <section id="how" className="mt-10">
               <div className="grid md:grid-cols-4 gap-4">
                 {[
@@ -321,7 +279,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* Search + category tabs */}
             <section id="menu" className="mt-10">
               <div className="flex items-center gap-3">
                 <input
@@ -345,7 +302,6 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Product grid */}
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map(m => {
                   const available = stock[m.id] ?? 0;
@@ -353,7 +309,12 @@ export default function App() {
                   return (
                     <div key={m.id} className="rounded-2xl border bg-white overflow-hidden shadow-sm">
                       <div className="aspect-[16/9] bg-slate-100">
-                        <img src={m.image} alt={m.name} className="h-full w-full object-cover" />
+                        <img
+                          src={m.image}
+                          alt={m.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = "https://placehold.co/600x338?text=Image+not+found"; }}
+                        />
                       </div>
                       <div className="p-4">
                         <div className="font-semibold">{m.name}</div>
@@ -379,7 +340,6 @@ export default function App() {
             </section>
           </main>
 
-          {/* Cart dock */}
           <CartDock
             cart={cart}
             subtotal={subtotal}

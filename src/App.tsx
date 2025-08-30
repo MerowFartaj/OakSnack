@@ -3,6 +3,7 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import CartDock from "./components/CartDock";
 import AdminDashboard from "./components/AdminDashboard";
+import CheckoutModal, { CheckoutPayload } from "./components/CheckoutModal";
 import { currency, shortId } from "./utils";
 import { Search, Calendar, MapPin, Bike } from "lucide-react";
 
@@ -79,6 +80,10 @@ type Order = {
   status: OrderStatus;
   createdAt: number;
   email?: string | null;
+  customer?: { name: string; grade: string; email: string };
+  location?: string;
+  payment?: string;
+  slot?: { id: string; label: string };
 };
 
 const LS_ORDERS = "owdash_orders_v2";
@@ -160,6 +165,7 @@ export default function App() {
       if (existing) return prev.map(l => l.id === m.id ? { ...l, qty: l.qty + 1 } : l);
       return [...prev, { key: `${m.id}`, id: m.id, name: m.name, price: m.price, qty: 1 }];
     });
+    // Open checkout (like your old flow)
     setShowCheckout(true);
   };
 
@@ -173,9 +179,10 @@ export default function App() {
 
   const onRemove = (key: string) => setCart(prev => prev.filter(l => l.key !== key));
 
-  const onCheckout = () => {
+  const placeOrder = (payload: CheckoutPayload) => {
     if (cart.length === 0) return;
 
+    // stock validation
     for (const line of cart) {
       const available = stock[line.id] ?? 0;
       if (line.qty > available) {
@@ -190,10 +197,15 @@ export default function App() {
       total,
       status: "new",
       createdAt: Date.now(),
-      email: null,
+      email: payload.customer.email || null,
+      customer: payload.customer,
+      location: payload.location,
+      payment: payload.payment,
+      slot: payload.slot,
     };
     setOrders(prev => [order, ...prev]);
 
+    // decrement stock now that the order is placed
     setStock(prev => {
       const next = { ...prev };
       for (const line of cart) next[line.id] = (next[line.id] ?? 0) - line.qty;
@@ -253,6 +265,7 @@ export default function App() {
           onRefund={refundOrder}
           onDelete={deleteOrder}
           onAdjust={addAdjustment}
+          onExit={() => setRunnerMode(false)}   // ← EXIT back to main
         />
       ) : (
         <>
@@ -347,8 +360,19 @@ export default function App() {
             total={total}
             onQty={onQty}
             onRemove={onRemove}
-            onCheckout={onCheckout}
+            onCheckout={() => setShowCheckout(true)}
           />
+
+          {showCheckout && (
+            <CheckoutModal
+              cart={cart}
+              subtotal={subtotal}
+              fee={cart.length ? SERVICE_FEE : 0}
+              total={total}
+              onClose={() => setShowCheckout(false)}
+              onPlace={placeOrder}
+            />
+          )}
         </>
       )}
     </div>

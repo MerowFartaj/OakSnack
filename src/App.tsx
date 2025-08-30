@@ -48,52 +48,52 @@ const LOCATIONS = [
 ];
 
 // ===============================
-// MENU (from your sheet)
+// MENU (from your sheet, with new prices)
 // ===============================
 const MENU = [
   // Drinks
   {
     id: "drpepper-can",
     name: "Dr Pepper (12oz Can)",
-    price: 2.0,
+    price: 2.0, // ✅ updated
     category: "drinks",
     desc: "Cold can from the case.",
     tags: ["cold"],
-    image: "https://placehold.co/400x240?text=Dr+Pepper",
+    image: "https://upload.wikimedia.org/wikipedia/commons/0/09/Dr_Pepper_can_12oz.jpg",
   },
   // Snacks
   {
     id: "oreos-snack",
     name: "Oreos (Snack Pack)",
-    price: 2.5,
+    price: 2.5, // ✅ updated
     category: "snacks",
     desc: "Mini sleeve of Oreos.",
-    image: "https://placehold.co/400x240?text=Oreos",
+    image: "https://images-na.ssl-images-amazon.com/images/I/71vDgC8p6ML._SL1500_.jpg",
   },
   {
     id: "hot-cheetos",
     name: "Hot Cheetos (Snack Bag)",
-    price: 3.8,
+    price: 2.99, // ✅ updated
     category: "snacks",
     desc: "Spicy, crunchy, elite.",
     tags: ["best-seller"],
-    image: "https://placehold.co/400x240?text=Hot+Cheetos",
+    image: "https://www.fritolay.com/sites/fritolay.com/files/styles/product_image/public/flamin-hot-cheetos.jpg",
   },
   {
     id: "trident-spearmint",
     name: "Trident Gum — Spearmint (14ct)",
-    price: 1.5,
+    price: 1.5, // ✅ updated
     category: "snacks",
     desc: "Fresh breath on deck.",
-    image: "https://placehold.co/400x240?text=Trident+Gum",
+    image: "https://m.media-amazon.com/images/I/81n0VtUJm8L._AC_SL1500_.jpg",
   },
   {
     id: "nerds-gummy",
     name: "Nerds Gummy Clusters (3oz)",
-    price: 3.5,
+    price: 2.99, // ✅ updated
     category: "snacks",
     desc: "Rainbow clusters. Crunch then chew.",
-    image: "https://placehold.co/400x240?text=Nerds+Gummy+Clusters",
+    image: "https://m.media-amazon.com/images/I/81cHf2rsCXL._AC_SL1500_.jpg",
   },
 ];
 

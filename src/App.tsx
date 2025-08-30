@@ -2,238 +2,101 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import CartDock from "./components/CartDock";
-import AdminDashboard from "./components/AdminDashboard";
-import CheckoutModal, { CheckoutPayload } from "./components/CheckoutModal";
+import CheckoutModal from "./components/CheckoutModal";
+import {
+  Bike,
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+} from "lucide-react";
 import { currency, shortId } from "./utils";
-import { Search, Calendar, MapPin, Bike } from "lucide-react";
-
-const TEAM_PIN = "4242";
-const SERVICE_FEE = 0;
-
-const CATEGORIES = [
-  { id: "featured", label: "Featured" },
-  { id: "snacks", label: "Snacks" },
-  { id: "drinks", label: "Drinks" },
-];
 
 // ===============================
-// MENU (local images in /public/products)
+// CONFIG
+// ===============================
+const TEAM_PIN = "4242";
+const SERVICE_FEE = 1.0;
+
+// ===============================
+// MENU (your real items)
 // ===============================
 const MENU = [
-  // Drinks
-  {
-    id: "drpepper-can",
-    name: "Dr Pepper (12oz Can)",
-    price: 2.0,
-    category: "drinks",
-    desc: "Cold can from the case.",
-    tags: ["cold"],
-    image: "/products/drpepper.jpg",   // <— IMPORTANT: leading slash, exact filename
-  },
-  // Snacks
-  {
-    id: "oreos-snack",
-    name: "Oreos (Snack Pack)",
-    price: 2.5,
-    category: "snacks",
-    desc: "Mini sleeve of Oreos.",
-    image: "/products/oreo.jpg",
-  },
-  {
-    id: "hot-cheetos",
-    name: "Hot Cheetos (Snack Bag)",
-    price: 2.99,
-    category: "snacks",
-    desc: "Spicy, crunchy, elite.",
-    tags: ["best-seller"],
-    image: "/products/cheetos.jpg",
-  },
-  {
-    id: "trident-spearmint",
-    name: "Trident Gum — Spearmint (14ct)",
-    price: 1.5,
-    category: "snacks",
-    desc: "Fresh breath on deck.",
-    image: "/products/trident.jpg",
-  },
-  {
-    id: "nerds-gummy",
-    name: "Nerds Gummy Clusters (3oz)",
-    price: 2.99,
-    category: "snacks",
-    desc: "Rainbow clusters. Crunch then chew.",
-    image: "/products/nerds.jpg",
-  },
+  { id: "drpepper-can", name: "Dr Pepper (12oz Can)", price: 2.0, category: "drinks", desc: "Cold can from the case.", tags: ["cold"], image: "/products/drpepper.jpg" },
+  { id: "oreos-snack", name: "Oreos (Snack Pack)", price: 2.5, category: "snacks", desc: "Mini sleeve of Oreos.", image: "/products/oreo.jpg" },
+  { id: "hot-cheetos", name: "Hot Cheetos (Snack Bag)", price: 2.99, category: "snacks", desc: "Spicy, crunchy, elite.", tags: ["best-seller"], image: "/products/cheetos.jpg" },
+  { id: "trident-spearmint", name: "Trident Gum — Spearmint (14ct)", price: 1.5, category: "snacks", desc: "Fresh breath on deck.", image: "/products/trident.jpg" },
+  { id: "nerds-gummy", name: "Nerds Gummy Clusters (3oz)", price: 2.99, category: "snacks", desc: "Rainbow clusters. Crunch then chew.", image: "/products/nerds.jpg" },
 ];
 
-type OrderStatus =
-  | "new"
-  | "preparing"
-  | "out-for-delivery"
-  | "delivered"
-  | "canceled"
-  | "refunded";
-
-type OrderItem = { id: string; name: string; qty: number; price: number };
-type Order = {
-  id: string;
-  items: OrderItem[];
-  total: number;
-  status: OrderStatus;
-  createdAt: number;
-  email?: string | null;
-  customer?: { name: string; grade: string; email: string };
-  location?: string;
-  payment?: string;
-  slot?: { id: string; label: string };
-};
-
-const LS_ORDERS = "owdash_orders_v2";
-const LS_STOCK = "owdash_stock_v1";
-const LS_ADJ = "owdash_revenue_adjustments_v1";
-
-const loadJSON = <T,>(k: string, fallback: T): T => {
+// ===============================
+// UTILITIES
+// ===============================
+const LS_ORDERS = "oakSnack_orders_v1";
+function loadOrders() {
   try {
-    const raw = localStorage.getItem(k);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    const raw = localStorage.getItem(LS_ORDERS);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return fallback;
+    return [];
   }
-};
+}
+function saveOrders(orders: any[]) {
+  localStorage.setItem(LS_ORDERS, JSON.stringify(orders));
+}
 
-export default function App() {
-  type CartLine = { key: string; id: string; name: string; price: number; qty: number };
-  const [cart, setCart] = useState<CartLine[]>([]);
+// ===============================
+// MAIN APP
+// ===============================
+export default function OakSnack() {
+  const [cart, setCart] = useState<any[]>([]);
   const [showCheckout, setShowCheckout] = useState(false);
-
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("featured");
-
+  const [orders, setOrders] = useState<any[]>(loadOrders());
   const [runnerMode, setRunnerMode] = useState(false);
   const [pinPrompt, setPinPrompt] = useState("");
 
-  const [orders, setOrders] = useState<Order[]>(() => loadJSON<Order[]>(LS_ORDERS, []));
-  useEffect(() => localStorage.setItem(LS_ORDERS, JSON.stringify(orders)), [orders]);
-
-  const initialStock: Record<string, number> = (() => {
-    const fromLS = loadJSON<Record<string, number> | null>(LS_STOCK, null);
-    if (fromLS) return fromLS;
-    const seed: Record<string, number> = {};
-    for (const m of MENU) seed[m.id] = m.stock ?? 0;
-    return seed;
-  })();
-  const [stock, setStock] = useState<Record<string, number>>(initialStock);
-  useEffect(() => localStorage.setItem(LS_STOCK, JSON.stringify(stock)), [stock]);
-
-  const [adjustments, setAdjustments] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem(LS_ADJ);
-      return raw ? Number(raw) : 0;
-    } catch {
-      return 0;
-    }
-  });
-  useEffect(() => localStorage.setItem(LS_ADJ, String(adjustments)), [adjustments]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return MENU.filter((m) => {
-      const matchText = !q || m.name.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q);
-      const matchCat = tab === "featured" ? true : m.category === tab;
-      return matchText && matchCat;
-    });
-  }, [query, tab]);
+  useEffect(() => saveOrders(orders), [orders]);
 
   const subtotal = useMemo(() => cart.reduce((s, it) => s + it.price * it.qty, 0), [cart]);
   const total = useMemo(() => subtotal + (cart.length ? SERVICE_FEE : 0), [subtotal, cart]);
 
-  const revenueDelivered = useMemo(
-    () => orders.filter(o => o.status === "delivered").reduce((s, o) => s + o.total, 0),
-    [orders]
-  );
-  const netRevenue = useMemo(() => revenueDelivered + adjustments, [revenueDelivered, adjustments]);
-
-  const inCartQty = (id: string) => cart.filter(c => c.id === id).reduce((s, c) => s + c.qty, 0);
-
-  const addToCart = (m: (typeof MENU)[number]) => {
-    const available = stock[m.id] ?? 0;
-    const already = inCartQty(m.id);
-    if (available <= already) {
-      alert("Out of stock for that item.");
-      return;
-    }
-    setCart(prev => {
-      const existing = prev.find(l => l.id === m.id);
-      if (existing) return prev.map(l => l.id === m.id ? { ...l, qty: l.qty + 1 } : l);
-      return [...prev, { key: `${m.id}`, id: m.id, name: m.name, price: m.price, qty: 1 }];
-    });
-    // Open checkout (like your old flow)
-    setShowCheckout(true);
-  };
-
-  const onQty = (key: string, delta: number) => {
-    setCart(prev =>
-      prev
-        .map(l => (l.key === key ? { ...l, qty: Math.max(0, l.qty + delta) } : l))
-        .filter(l => l.qty > 0)
-    );
-  };
-
-  const onRemove = (key: string) => setCart(prev => prev.filter(l => l.key !== key));
-
-  const placeOrder = (payload: CheckoutPayload) => {
-    if (cart.length === 0) return;
-
-    // stock validation
-    for (const line of cart) {
-      const available = stock[line.id] ?? 0;
-      if (line.qty > available) {
-        alert(`Not enough stock for ${line.name}.`);
-        return;
+  // Add to cart (does not open checkout anymore)
+  function addToCart(item: any) {
+    setCart((c) => {
+      const idx = c.findIndex((ci) => ci.id === item.id);
+      if (idx >= 0) {
+        const copy = [...c];
+        copy[idx] = { ...copy[idx], qty: copy[idx].qty + 1 };
+        return copy;
       }
-    }
-
-    const order: Order = {
-      id: shortId(),
-      items: cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price })),
-      total,
-      status: "new",
-      createdAt: Date.now(),
-      email: payload.customer.email || null,
-      customer: payload.customer,
-      location: payload.location,
-      payment: payload.payment,
-      slot: payload.slot,
-    };
-    setOrders(prev => [order, ...prev]);
-
-    // decrement stock now that the order is placed
-    setStock(prev => {
-      const next = { ...prev };
-      for (const line of cart) next[line.id] = (next[line.id] ?? 0) - line.qty;
-      return next;
+      return [...c, { ...item, qty: 1 }];
     });
+  }
 
+  function updateQty(key: string, delta: number) {
+    setCart((c) =>
+      c.map((it) => (it.id === key ? { ...it, qty: Math.max(1, it.qty + delta) } : it))
+    );
+  }
+
+  function removeLine(key: string) {
+    setCart((c) => c.filter((it) => it.id !== key));
+  }
+
+  function handlePlaceOrder(info: any) {
+    const order = {
+      id: shortId(),
+      items: cart,
+      subtotal,
+      fee: SERVICE_FEE,
+      total,
+      status: "pending",
+      customer: info,
+    };
+    setOrders((o) => [...o, order]);
     setCart([]);
     setShowCheckout(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    alert(`Order placed! Your ID is ${order.id}`);
-  };
-
-  // admin actions
-  const addAdjustment = (delta: number) => setAdjustments(prev => +(prev + delta).toFixed(2));
-  const setOrderStatus = (id: string, status: OrderStatus) =>
-    setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));
-  const markDelivered = (id: string) => setOrderStatus(id, "delivered");
-  const cancelOrder   = (id: string) => setOrderStatus(id, "canceled");
-  const refundOrder   = (id: string) => setOrderStatus(id, "refunded");
-  const deleteOrder   = (id: string) => setOrders(prev => prev.filter(o => o.id !== id));
-
-  // inventory adjust handlers
-  const incStock = (id: string, n = 1) => setStock(prev => ({ ...prev, [id]: (prev[id] ?? 0) + n }));
-  const decStock = (id: string, n = 1) => setStock(prev => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) - n) }));
-  const setStockTo = (id: string, qty: number) =>
-    setStock(prev => ({ ...prev, [id]: Math.max(0, Math.floor(qty)) }));
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-slate-800">
@@ -241,141 +104,112 @@ export default function App() {
         cartCount={cart.reduce((n, i) => n + i.qty, 0)}
         onOpenCheckout={() => setShowCheckout(true)}
         runnerMode={runnerMode}
-        onRunnerToggle={() => setRunnerMode(m => !m)}
+        onRunnerToggle={() => setRunnerMode((m) => !m)}
         onRunnerAuth={(pin: string) => {
-          if (pin === TEAM_PIN) { setRunnerMode(true); setPinPrompt(""); }
-          else { alert("Incorrect PIN"); }
+          if (pin === TEAM_PIN) {
+            setRunnerMode(true);
+            setPinPrompt("");
+          } else {
+            alert("Incorrect PIN");
+          }
         }}
         pinPrompt={pinPrompt}
         setPinPrompt={setPinPrompt}
       />
 
-      {runnerMode ? (
-        <AdminDashboard
-          products={MENU.map(m => ({ id: m.id, name: m.name }))}
-          stock={stock}
-          onIncStock={incStock}
-          onDecStock={decStock}
-          onSetStock={setStockTo}
-          revenueDelivered={revenueDelivered}
-          adjustments={adjustments}
-          netRevenue={netRevenue}
-          orders={orders}
-          onSetStatus={setOrderStatus}
-          onMarkDelivered={markDelivered}
-          onCancel={cancelOrder}
-          onRefund={refundOrder}
-          onDelete={deleteOrder}
-          onAdjust={addAdjustment}
-          onExit={() => setRunnerMode(false)}   // ← EXIT back to main
-        />
-      ) : (
+      {!runnerMode ? (
         <>
           <Hero onStartOrder={() => document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" })} />
 
-          <main className="container mx-auto px-4 pb-36">
-            <section id="how" className="mt-10">
-              <div className="grid md:grid-cols-4 gap-4">
-                {[
-                  { icon: <Search className="h-5 w-5" />, title: "Pick your items", text: "Browse and add to cart." },
-                  { icon: <Calendar className="h-5 w-5" />, title: "Choose a time", text: "High School Lunch (for now)." },
-                  { icon: <MapPin className="h-5 w-5" />, title: "Drop a location", text: "Tell us where to meet you." },
-                  { icon: <Bike className="h-5 w-5" />, title: "We deliver", text: "We queue, pick up, and deliver fast." },
-                ].map((s, i) => (
-                  <div key={i} className="p-5 rounded-2xl bg-white border shadow-sm">
-                    <div className="flex items-center gap-2 text-indigo-600 font-semibold">
-                      <span className="inline-grid place-items-center h-8 w-8 rounded-xl bg-indigo-50">{s.icon}</span>
-                      Step {i + 1}
-                    </div>
-                    <div className="mt-2 font-semibold">{s.title}</div>
-                    <div className="text-sm text-slate-600">{s.text}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section id="menu" className="mt-10">
-              <div className="flex items-center gap-3">
-                <input
-                  className="flex-1 rounded-2xl border px-4 py-2"
-                  placeholder="Search the student store…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                <button className="rounded-2xl border px-4 py-2">Filters</button>
-              </div>
-
-              <div className="mt-4 inline-flex rounded-2xl border bg-white p-1">
-                {CATEGORIES.map(c => (
+          <main className="container mx-auto px-4 pb-28">
+            <section id="menu" className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {MENU.map((m) => (
+                <div key={m.id} className="border rounded-2xl p-4 bg-white shadow hover:shadow-md">
+                  <img src={m.image} alt={m.name} className="h-32 w-full object-cover rounded-lg mb-2" />
+                  <div className="font-semibold">{m.name}</div>
+                  <div className="text-sm text-slate-600">{m.desc}</div>
+                  <div className="mt-1 text-indigo-600 font-semibold">{currency(m.price)}</div>
                   <button
-                    key={c.id}
-                    onClick={() => setTab(c.id)}
-                    className={`px-4 py-2 rounded-xl ${tab === c.id ? "bg-indigo-600 text-white" : ""}`}
+                    onClick={() => addToCart(m)}
+                    className="mt-3 w-full rounded-xl bg-indigo-600 text-white py-2"
                   >
-                    {c.label}
+                    Add to Cart
                   </button>
-                ))}
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map(m => {
-                  const available = stock[m.id] ?? 0;
-                  const disabled = available <= 0;
-                  return (
-                    <div key={m.id} className="rounded-2xl border bg-white overflow-hidden shadow-sm">
-                      <div className="aspect-[16/9] bg-slate-100">
-                        <img
-                          src={m.image}
-                          alt={m.name}
-                          className="h-full w-full object-cover"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = "https://placehold.co/600x338?text=Image+not+found"; }}
-                        />
-                      </div>
-                      <div className="p-4">
-                        <div className="font-semibold">{m.name}</div>
-                        <div className="text-sm text-slate-600">{m.desc}</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {available > 0 ? `${available} left` : "Out of stock"}
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="font-bold text-indigo-700">{currency(m.price)}</div>
-                          <button
-                            disabled={disabled}
-                            onClick={() => addToCart(m)}
-                            className={`rounded-xl px-3 py-2 ${disabled ? "bg-slate-200 text-slate-500" : "bg-indigo-600 text-white"}`}
-                          >
-                            + Add to cart
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                </div>
+              ))}
             </section>
           </main>
-
-          <CartDock
-            cart={cart}
-            subtotal={subtotal}
-            fee={cart.length ? SERVICE_FEE : 0}
-            total={total}
-            onQty={onQty}
-            onRemove={onRemove}
-            onCheckout={() => setShowCheckout(true)}
-          />
-
-          {showCheckout && (
-            <CheckoutModal
-              cart={cart}
-              subtotal={subtotal}
-              fee={cart.length ? SERVICE_FEE : 0}
-              total={total}
-              onClose={() => setShowCheckout(false)}
-              onPlace={placeOrder}
-            />
-          )}
         </>
+      ) : (
+        <RunnerDashboard orders={orders} setOrders={setOrders} onExit={() => setRunnerMode(false)} />
+      )}
+
+      <CartDock
+        cart={cart}
+        subtotal={subtotal}
+        fee={cart.length ? SERVICE_FEE : 0}
+        total={total}
+        onQty={updateQty}
+        onRemove={removeLine}
+        onCheckout={() => setShowCheckout(true)}
+      />
+
+      {showCheckout && (
+        <CheckoutModal
+          onClose={() => setShowCheckout(false)}
+          total={total}
+          fee={SERVICE_FEE}
+          subtotal={subtotal}
+          cart={cart}
+          onPlace={handlePlaceOrder}
+        />
+      )}
+    </div>
+  );
+}
+
+// ===============================
+// RUNNER DASHBOARD
+// ===============================
+function RunnerDashboard({ orders, setOrders, onExit }: any) {
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Runner Dashboard</h2>
+        <button className="rounded-xl border px-3 py-1" onClick={onExit}>
+          Exit
+        </button>
+      </div>
+      {orders.length === 0 ? (
+        <div className="text-slate-500">No orders yet.</div>
+      ) : (
+        <div className="space-y-4">
+          {orders.map((o: any) => (
+            <div key={o.id} className="border rounded-xl p-4 bg-white shadow">
+              <div className="font-semibold">Order #{o.id}</div>
+              <div className="text-sm text-slate-600">
+                {o.items.map((it: any) => `${it.name} x${it.qty}`).join(", ")}
+              </div>
+              <div className="text-sm font-medium">Total: {currency(o.total)}</div>
+              <div className="text-sm">Customer: {o.customer?.name} ({o.customer?.grade})</div>
+              <select
+                value={o.status}
+                onChange={(e) =>
+                  setOrders((prev: any) =>
+                    prev.map((ord: any) =>
+                      ord.id === o.id ? { ...ord, status: e.target.value } : ord
+                    )
+                  )
+                }
+                className="mt-2 rounded border px-2 py-1"
+              >
+                <option value="pending">Pending</option>
+                <option value="delivering">Delivering</option>
+                <option value="delivered">Delivered</option>
+              </select>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

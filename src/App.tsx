@@ -49,24 +49,21 @@ const LOCATIONS = [
  *  MENU (your latest prices / images in public/products)
  *  ============================= */
 const MENU = [
-  // Drinks
   {
     id: "drpepper-can",
     name: "Dr Pepper (12oz Can)",
     price: 2.0,
     category: "drinks",
     desc: "Cold can from the case.",
-    tags: ["cold"],
-    image: "/products/drpepper.jpg",
+    image: "/products/drpepper.jpg",   // ← leading slash
   },
-  // Snacks
   {
     id: "oreos-snack",
     name: "Oreos (Snack Pack)",
     price: 2.5,
     category: "snacks",
     desc: "Mini sleeve of Oreos.",
-    image: "/products/oreo.jpg",
+    image: "/products/oreo.jpg",       // ← leading slash
   },
   {
     id: "hot-cheetos",
@@ -74,8 +71,7 @@ const MENU = [
     price: 2.99,
     category: "snacks",
     desc: "Spicy, crunchy, elite.",
-    tags: ["best-seller"],
-    image: "/products/cheetos.jpg",
+    image: "/products/cheetos.jpg",    // ← leading slash
   },
   {
     id: "trident-spearmint",
@@ -83,7 +79,7 @@ const MENU = [
     price: 1.5,
     category: "snacks",
     desc: "Fresh breath on deck.",
-    image: "/products/trident.jpg",
+    image: "/products/trident.jpg",    // ← leading slash
   },
   {
     id: "nerds-gummy",
@@ -91,7 +87,7 @@ const MENU = [
     price: 2.99,
     category: "snacks",
     desc: "Rainbow clusters. Crunch then chew.",
-    image: "/products/nerds.jpg",
+    image: "/products/nerds.jpg",      // ← leading slash
   },
 ];
 

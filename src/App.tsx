@@ -1,8 +1,8 @@
 // src/components/App.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import Header from "./Header";
-import Hero from "./Hero";
-import MenuCard, { Item } from "./MenuCard";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import MenuCard, { Item } from "./components/MenuCard";
 import {
   Bike,
   Filter,
@@ -18,8 +18,8 @@ import {
   ShoppingCart,
   LogOut,
 } from "lucide-react";
-import { currency, shortId } from "../utils";
-import CheckoutModal from "./CheckoutModal";
+import { currency, shortId } from "./utils";
+import CheckoutModal from "./components/CheckoutModal";
 
 /* =========================================================
    CONFIG
@@ -176,16 +176,15 @@ export default function OakSnackApp() {
   useEffect(() => saveJSON(LS_REV_HIST, revenueHistory), [revenueHistory]);
 
   // search & filter
-  const filtered = useMemo(() => {
+   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return MENU.filter((m) => {
       const matchesText =
         !q ||
         m.name.toLowerCase().includes(q) ||
         m.desc?.toLowerCase().includes(q) ||
-        (m.tags || []).some((t) => t.toLowerCase().includes(q));
+        (m.tags || []).some((t: string) => t.toLowerCase().includes(q));
       const matchesCat = tab === "featured" ? true : m.category === tab;
-      // hide items that are completely out of stock on non-featured tabs? (keep visible everywhere)
       return matchesText && matchesCat;
     });
   }, [query, tab]);

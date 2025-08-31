@@ -1,98 +1,96 @@
 // src/components/CheckoutModal.tsx
-import React from "react";
+import React, { useState } from "react";
 import { currency } from "../utils";
 
 export default function CheckoutModal({
   open,
+  onClose,
   subtotal,
   fee,
   total,
-  defaultSlot = "High School Lunch",
-  onClose,
   onConfirm,
 }: {
   open: boolean;
+  onClose: () => void;
   subtotal: number;
   fee: number;
   total: number;
-  defaultSlot?: string;
-  onClose: () => void;
-  onConfirm: (form: {
-    name: string;
-    grade: string;
-    slot: string;
-    location: string;
-  }) => void;
+  onConfirm: (info: { name: string; grade: string; slot: string; location: string }) => void;
 }) {
+  const [name, setName] = useState("");
+  const [grade, setGrade] = useState("");
+  const [slot] = useState("High School Lunch"); // fixed for now
+  const [location, setLocation] = useState("");
+
   if (!open) return null;
 
+  function confirm() {
+    if (!name.trim() || !grade.trim() || !location.trim()) {
+      alert("Please fill your name, grade, and meet location.");
+      return;
+    }
+    onConfirm({ name: name.trim(), grade: grade.trim(), slot, location: location.trim() });
+  }
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-5">
-        <div className="text-lg font-semibold">Checkout & Deliver</div>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4">
+      <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl">
+        <div className="text-xl font-semibold">Checkout &amp; Deliver</div>
 
-        <form
-          className="mt-4 grid gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const fd = new FormData(e.currentTarget as HTMLFormElement);
-            onConfirm({
-              name: String(fd.get("name") || ""),
-              grade: String(fd.get("grade") || ""),
-              slot: String(fd.get("slot") || defaultSlot),
-              location: String(fd.get("location") || ""),
-            });
-          }}
-        >
+        <div className="mt-4 space-y-3">
           <input
-            name="name"
-            className="rounded-xl border p-2"
+            className="w-full rounded-xl border px-3 py-2"
             placeholder="Your name"
-            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
           <input
-            name="grade"
-            className="rounded-xl border p-2"
+            className="w-full rounded-xl border px-3 py-2"
             placeholder="Grade (e.g. 10)"
-            required
+            value={grade}
+            onChange={(e) => setGrade(e.target.value)}
           />
           <input
-            name="slot"
-            className="rounded-xl border p-2"
-            defaultValue={defaultSlot}
-            placeholder="Time slot"
-            required
+            disabled
+            className="w-full rounded-xl border px-3 py-2 bg-slate-100"
+            value={slot}
           />
-          <input
-            name="location"
-            className="rounded-xl border p-2"
-            placeholder="Meet location (e.g. Main Quad)"
-            required
-          />
+          <select
+            className="w-full rounded-xl border px-3 py-2"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          >
+            <option value="">Meet location…</option>
+            <option>Main Quad</option>
+            <option>Library Patio</option>
+            <option>Arts Building</option>
+            <option>Science Building</option>
+            <option>Gym Entrance</option>
+            <option>Front Gate</option>
+            <option>College Counseling</option>
+          </select>
+        </div>
 
-          <div className="flex items-center justify-between mt-2 text-sm text-slate-600">
-            <div>
-              Subtotal: <strong>{currency(subtotal)}</strong>
-            </div>
-            <div>Service: {currency(fee)}</div>
-            <div>
-              Total: <strong>{currency(total)}</strong>
-            </div>
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+          <div>
+            Subtotal: <span className="font-semibold">{currency(subtotal)}</span>
           </div>
+          <div>
+            Service: <span className="font-semibold">{currency(fee)}</span>
+          </div>
+          <div>
+            Total: <span className="font-semibold">{currency(total)}</span>
+          </div>
+        </div>
 
-          <div className="mt-3 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border px-3 py-2"
-            >
-              Cancel
-            </button>
-            <button type="submit" className="rounded-xl bg-indigo-600 text-white px-3 py-2">
-              Confirm order
-            </button>
-          </div>
-        </form>
+        <div className="mt-5 flex justify-end gap-2">
+          <button className="rounded-xl border px-3 py-2" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="rounded-xl bg-indigo-600 px-4 py-2 text-white" onClick={confirm}>
+            Confirm order
+          </button>
+        </div>
       </div>
     </div>
   );

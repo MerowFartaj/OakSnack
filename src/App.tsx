@@ -3,9 +3,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import MenuCard, { Item } from "./components/MenuCard";
+import CartDock from "./components/CartDock";
+import CheckoutModal from "./components/CheckoutModal";
 import {
-  Bike, Filter, Minus, Plus, Search, Trash2, Package, CheckCircle, Loader2,
-  MapPin, Calendar, ShoppingCart, LogOut
+  Bike, Filter, Minus, Plus, Search, Trash2, Package, CheckCircle,
+  Loader2, MapPin, Calendar, ShoppingCart, LogOut
 } from "lucide-react";
 import { currency, shortId } from "./utils";
 
@@ -17,8 +19,9 @@ const SERVICE_FEE = 1.0;
 
 // LocalStorage keys
 const LS_ORDERS = "oakSnack_orders_v1";
-const LS_INV     = "oakSnack_inv_v1";
-const LS_REV     = "oakSnack_rev_v1";
+const LS_INV    = "oakSnack_inv_v1";
+const LS_REV    = "oakSnack_rev_v1";
+const LS_REVH   = "oakSnack_rev_hist_v1";
 
 // Categories
 const CATEGORIES = [
@@ -27,7 +30,7 @@ const CATEGORIES = [
   { id: "drinks",   label: "Drinks"   },
 ];
 
-// MENU (uses images from /public/products/*.jpg)
+// MENU (images live under /public/products/*)
 const MENU: Item[] = [
   {
     id: "drpepper-can",
@@ -82,9 +85,7 @@ const START_STOCK: Record<string, number> = {
   "nerds-gummy": 12,
 };
 
-// ===============================
-// Small helpers
-// ===============================
+// helpers
 function loadJSON<T>(key: string, fallback: T): T {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) as T : fallback; }
   catch { return fallback; }
@@ -93,8 +94,10 @@ function saveJSON<T>(key: string, data: T) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
+type RevPoint = { t: number; total: number };
+
 // ===============================
-// MAIN APP
+// APP
 // ===============================
 export default function OakSnackApp() {
   // cart + UI
@@ -105,10 +108,11 @@ export default function OakSnackApp() {
 
   // orders, inventory, revenue
   const [orders, setOrders] = useState<any[]>(() => loadJSON<any[]>(LS_ORDERS, []));
-  const [inventory, setInventory] = useState<Record<string, number>>(() =>
-    loadJSON<Record<string, number>>(LS_INV, { ...START_STOCK })
+  const [inventory, setInventory] = useState<Record<string, number>>(
+    () => loadJSON<Record<string, number>>(LS_INV, { ...START_STOCK })
   );
   const [revenue, setRevenue] = useState<number>(() => loadJSON<number>(LS_REV, 0));
+  const [revHist, setRevHist] = useState<RevPoint[]>(() => loadJSON<RevPoint[]>(LS_REVH, []));
 
   // runner page
   const [runnerMode, setRunnerMode] = useState(false);
@@ -118,6 +122,7 @@ export default function OakSnackApp() {
   useEffect(() => saveJSON(LS_ORDERS, orders), [orders]);
   useEffect(() => saveJSON(LS_INV, inventory), [inventory]);
   useEffect(() => saveJSON(LS_REV, revenue), [revenue]);
+  useEffect(() => saveJSON(LS_REVH, revHist), [revHist]);
 
   // search + filter
   const filtered = useMemo(() => {
@@ -139,7 +144,6 @@ export default function OakSnackApp() {
 
   // cart ops
   function addToCart(item: Item, selected?: any) {
-    // block if no stock remaining
     const inCart = cart.find((l) => l.id === item.id)?.qty ?? 0;
     const remaining = (inventory[item.id] ?? 0) - inCart;
     if (remaining <= 0) {
@@ -148,24 +152,16 @@ export default function OakSnackApp() {
     }
     setCart((c) => {
       const idx = c.findIndex((l) => l.id === item.id);
-      if (idx === -1) {
-        return [...c, { id: item.id, name: item.name, price: item.price, qty: 1, selected }];
-      } else {
-        const copy = [...c];
-        copy[idx] = { ...copy[idx], qty: copy[idx].qty + 1 };
-        return copy;
-      }
+      if (idx === -1) return [...c, { id: item.id, name: item.name, price: item.price, qty: 1, selected }];
+      const cp = [...c]; cp[idx] = { ...cp[idx], qty: cp[idx].qty + 1 }; return cp;
     });
   }
   function setQty(key: string, delta: number) {
     setCart((c) => {
       const idx = c.findIndex((l) => l.id === key);
       if (idx === -1) return c;
-      const copy = [...c];
-      const nextQty = copy[idx].qty + delta;
-      if (nextQty <= 0) copy.splice(idx, 1);
-      else copy[idx] = { ...copy[idx], qty: nextQty };
-      return copy;
+      const cp = [...c]; const q = cp[idx].qty + delta;
+      if (q <= 0) cp.splice(idx, 1); else cp[idx] = { ...cp[idx], qty: q }; return cp;
     });
   }
   function removeLine(key: string) {
@@ -173,13 +169,12 @@ export default function OakSnackApp() {
   }
 
   // checkout
-  function checkout(form: { name: string; grade: string; slot: string; location: string }) {
+  function handleConfirmOrder(form: { name: string; grade: string; slot: string; location: string }) {
     if (cart.length === 0) return;
+
     // decrement inventory
     const newInv = { ...inventory };
-    cart.forEach((l) => {
-      newInv[l.id] = Math.max(0, (newInv[l.id] ?? 0) - l.qty);
-    });
+    cart.forEach((l) => { newInv[l.id] = Math.max(0, (newInv[l.id] ?? 0) - l.qty); });
     setInventory(newInv);
 
     const id = shortId();
@@ -195,6 +190,7 @@ export default function OakSnackApp() {
     };
     setOrders((o) => [order, ...o]);
     setRevenue((r) => r + total);
+    setRevHist((h) => [...h, { t: Date.now(), total }]);
     setCart([]);
     setShowCheckout(false);
     alert(`Order placed! Your ID is ${id}`);
@@ -208,110 +204,38 @@ export default function OakSnackApp() {
     setOrders((o) => o.filter((ord) => ord.id !== id));
   }
 
-  // simple checkout modal UI
-  const CheckoutModal = () =>
-    !showCheckout ? null : (
-      <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-5">
-          <div className="text-lg font-semibold">Checkout & Deliver</div>
-          <form
-            className="mt-4 grid gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const fd = new FormData(e.currentTarget as HTMLFormElement);
-              checkout({
-                name: String(fd.get("name") || ""),
-                grade: String(fd.get("grade") || ""),
-                slot:  String(fd.get("slot")  || "High School Lunch"),
-                location: String(fd.get("location") || "Main Quad"),
-              });
-            }}
-          >
-            <input name="name" className="rounded-xl border p-2" placeholder="Your name" required />
-            <input name="grade" className="rounded-xl border p-2" placeholder="Grade" required />
-            <input
-              name="slot"
-              className="rounded-xl border p-2"
-              defaultValue="High School Lunch"
-              placeholder="Time slot"
-              required
-            />
-            <input name="location" className="rounded-xl border p-2" placeholder="Pickup location" required />
-            <div className="flex items-center justify-between mt-2 text-sm text-slate-600">
-              <div>Subtotal: <strong>{currency(subtotal)}</strong></div>
-              <div>Service: {currency(cart.length ? SERVICE_FEE : 0)}</div>
-              <div>Total: <strong>{currency(total)}</strong></div>
-            </div>
-            <div className="mt-3 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowCheckout(false)} className="rounded-xl border px-3 py-2">
-                Cancel
-              </button>
-              <button type="submit" className="rounded-xl bg-indigo-600 text-white px-3 py-2">
-                Confirm order
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+  // revenue manual adjust
+  const [revAdjust, setRevAdjust] = useState<string>("0");
+  function applyRevAdjustment(sign: 1 | -1) {
+    const amt = Number(revAdjust || "0");
+    if (Number.isNaN(amt) || amt === 0) return;
+    setRevenue((r) => r + sign * amt);
+    // optional to record manual adjustments as history points
+    setRevHist((h) => [...h, { t: Date.now(), total: sign * amt }]);
+    setRevAdjust("0");
+  }
 
-  // simple cart dock
-  const CartDock = () => (
-    <div className="fixed bottom-4 left-0 right-0 z-30">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-3xl rounded-2xl border bg-white shadow-xl">
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" /> Your Cart
-              </div>
-              <div className="text-sm text-slate-600">
-                Subtotal: <span className="font-semibold">{currency(subtotal)}</span> • Service: {currency(cart.length ? SERVICE_FEE : 0)} •{" "}
-                <span className="font-semibold">Total: {currency(total)}</span>
-              </div>
-            </div>
-            <div className="mt-3 divide-y">
-              {cart.length === 0 ? (
-                <div className="text-sm text-slate-500 py-3">Cart is empty. Add something tasty 👀</div>
-              ) : (
-                cart.map((line) => (
-                  <div key={line.id} className="py-3 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium">{line.name}</div>
-                      <div className="text-sm text-slate-600">{currency(line.price)}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className="rounded-lg border px-2 py-1" onClick={() => setQty(line.id, -1)}>
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <div className="w-8 text-center">{line.qty}</div>
-                      <button className="rounded-lg border px-2 py-1" onClick={() => setQty(line.id, +1)}>
-                        <Plus className="h-4 w-4" />
-                      </button>
-                      <button className="rounded-lg px-2 py-1" onClick={() => removeLine(line.id)}>
-                        <Trash2 className="h-4 w-4 text-slate-500" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button
-                disabled={cart.length === 0}
-                onClick={() => setShowCheckout(true)}
-                className={`rounded-xl px-3 py-2 flex items-center gap-2 ${
-                  cart.length === 0 ? "bg-slate-200 text-slate-500" : "bg-indigo-600 text-white"
-                }`}
-              >
-                <Bike className="h-4 w-4" /> Checkout & Deliver
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // simple mini chart (last 20 points)
+  function RevenueChart({ points }: { points: RevPoint[] }) {
+    const data = points.slice(-20);
+    const width = 320, height = 80, pad = 6;
+    const max = Math.max(1, ...data.map((d) => Math.abs(d.total)));
+    const step = (width - pad * 2) / Math.max(1, data.length - 1);
+
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-20">
+        <rect x="0" y="0" width={width} height={height} fill="white" />
+        {data.map((d, i) => {
+          const x = pad + i * step;
+          const y = height - pad - (Math.abs(d.total) / max) * (height - pad * 2);
+          const barW = Math.max(2, step * 0.6);
+          return (
+            <rect key={i} x={x - barW / 2} y={y} width={barW} height={height - pad - y} rx="2" />
+          );
+        })}
+      </svg>
+    );
+  }
 
   // runner dashboard
   const RunnerPage = () => (
@@ -333,7 +257,15 @@ export default function OakSnackApp() {
                 <div>{m.name}</div>
                 <div className="flex items-center gap-2">
                   <button className="rounded-lg border px-2 py-1" onClick={() => setInventory((inv) => ({ ...inv, [m.id]: Math.max(0, (inv[m.id] ?? 0) - 1) }))}>-</button>
-                  <div className="w-10 text-center">{inventory[m.id] ?? 0}</div>
+                  <input
+                    value={inventory[m.id] ?? 0}
+                    onChange={(e) =>
+                      setInventory((inv) => ({ ...inv, [m.id]: Math.max(0, Number(e.target.value || 0)) }))
+                    }
+                    className="w-16 text-center rounded-lg border px-2 py-1"
+                    type="number"
+                    min={0}
+                  />
                   <button className="rounded-lg border px-2 py-1" onClick={() => setInventory((inv) => ({ ...inv, [m.id]: (inv[m.id] ?? 0) + 1 }))}>+</button>
                 </div>
               </div>
@@ -383,8 +315,29 @@ export default function OakSnackApp() {
 
       {/* Revenue */}
       <div className="mt-6 rounded-2xl border bg-white p-4">
-        <div className="font-semibold">Revenue</div>
-        <div className="text-2xl mt-1">{currency(revenue)}</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-semibold">Revenue</div>
+            <div className="text-2xl mt-1">{currency(revenue)}</div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              value={revAdjust}
+              onChange={(e) => setRevAdjust(e.target.value)}
+              type="number"
+              step="0.01"
+              className="rounded-lg border px-2 py-1 w-28"
+              placeholder="Adjust"
+            />
+            <button className="rounded-lg border px-2 py-1" onClick={() => applyRevAdjustment(+1)}>Add</button>
+            <button className="rounded-lg border px-2 py-1" onClick={() => applyRevAdjustment(-1)}>Subtract</button>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <RevenueChart points={revHist} />
+        </div>
       </div>
     </div>
   );
@@ -416,10 +369,7 @@ export default function OakSnackApp() {
         onOpenCheckout={() => setShowCheckout(true)}
         runnerMode={false}
         onRunnerToggle={() => setRunnerMode((m) => !m)}
-        onRunnerAuth={(pin: string) => {
-          if (pin === TEAM_PIN) setRunnerMode(true);
-          else alert("Incorrect PIN");
-        }}
+        onRunnerAuth={(pin: string) => { if (pin === TEAM_PIN) setRunnerMode(true); else alert("Incorrect PIN"); }}
         pinPrompt={pinPrompt}
         setPinPrompt={setPinPrompt}
       />
@@ -427,9 +377,7 @@ export default function OakSnackApp() {
       <Hero onStartOrder={() => document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" })} />
 
       <main id="menu" className="container mx-auto px-4 pb-28">
-        {/* How it works & status lookup could be here if you kept them */}
-
-        {/* Search + tabs */}
+        {/* Search + filters */}
         <div className="mt-8 flex items-center gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
@@ -470,15 +418,31 @@ export default function OakSnackApp() {
                 item={item}
                 stock={stock}
                 cartQty={cartQty}
-                onAdd={(selected?: any) => addToCart(item, selected)}
+                onAdd={() => addToCart(item)}
               />
             );
           })}
         </div>
       </main>
 
-      <CheckoutModal />
-      <CartDock />
+      <CheckoutModal
+        open={showCheckout}
+        subtotal={subtotal}
+        fee={cart.length ? SERVICE_FEE : 0}
+        total={total}
+        onClose={() => setShowCheckout(false)}
+        onConfirm={handleConfirmOrder}
+      />
+
+      <CartDock
+        cart={cart}
+        subtotal={subtotal}
+        fee={cart.length ? SERVICE_FEE : 0}
+        total={total}
+        onQty={(key: string, delta: number) => setQty(key, delta)}
+        onRemove={(key: string) => removeLine(key)}
+        onCheckout={() => setShowCheckout(true)}
+      />
     </div>
   );
 }

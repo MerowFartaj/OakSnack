@@ -875,12 +875,14 @@ export default function App() {
     alert(`Order ${id} placed!`);
   };
 
- // runner actions
+// =============================
+// runner actions
+// =============================
 const setOrderStatus = (id: string, status: Order["status"]) => {
-  setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+  setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));
 };
 const deleteOrder = (id: string) => {
-  setOrders((prev) => prev.filter((o) => o.id !== id));
+  setOrders(prev => prev.filter(o => o.id !== id));
 };
 
 // =============================
@@ -892,7 +894,7 @@ return (
       cartCount={cart.reduce((n, i) => n + i.qty, 0)}
       onOpenCheckout={() => setShowCheckout(true)}
       runnerMode={runnerMode}
-      onRunnerToggle={() => setRunnerMode((m) => !m)}
+      onRunnerToggle={() => setRunnerMode(m => !m)}
       onRunnerAuth={(pin: string) => {
         if (pin === TEAM_PIN) {
           setRunnerMode(true);
@@ -925,7 +927,7 @@ return (
           }
         />
 
-        {/* ✅ move steps ABOVE the menu */}
+        {/* steps moved ABOVE the menu */}
         <HowItWorks />
 
         {/* menu */}
@@ -1002,99 +1004,4 @@ return (
     )}
   </div>
 );
-}
-
-  // normal site
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-slate-800">
-      <Header
-        cartCount={cart.reduce((n, i) => n + i.qty, 0)}
-        onOpenCheckout={() => setShowCheckout(true)}
-        runnerMode={runnerMode}
-        onRunnerToggle={() => setRunnerMode((m) => !m)}
-        onRunnerAuth={(pin: string) => {
-          if (pin === TEAM_PIN) {
-            setRunnerMode(true);
-            setPinPrompt("");
-          } else {
-            alert("Incorrect PIN");
-          }
-        }}
-        pinPrompt={pinPrompt}
-        setPinPrompt={setPinPrompt}
-      />
-
-      <Hero onStartOrder={() => document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" })} />
-
-      <main className="container mx-auto px-4 pb-28">
-        {/* search + categories */}
-        <section id="menu" className="mt-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-2 top-2.5 text-slate-400" />
-              <input
-                className="rounded-xl border pl-8 pr-3 py-2 w-64"
-                placeholder="Search snacks…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c.id}
-                  className={`rounded-xl px-3 py-1 text-sm ${
-                    tab === c.id ? "bg-indigo-600 text-white" : "bg-white border"
-                  }`}
-                  onClick={() => setTab(c.id)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* grid */}
-          <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((m) => {
-              const inCartQty = cart.filter((l) => l.id === m.id).reduce((s, l) => s + l.qty, 0);
-              const stock = inventory[m.id] ?? 0;
-              return (
-                <MenuCard
-                  key={m.id}
-                  item={m}
-                  stock={stock}
-                  cartQty={inCartQty}
-                  onAdd={() => addToCart(m)}
-                />
-              );
-            })}
-            {filtered.length === 0 && (
-              <div className="text-sm text-slate-500">No items match that search/category.</div>
-            )}
-          </div>
-        </section>
-
-        <HowItWorks />
-      </main>
-
-      {/* cart dock */}
-      <CartDock
-        cart={cart}
-        subtotal={subtotal}
-        fee={cart.length ? SERVICE_FEE : 0}
-        total={total}
-        onQty={onQty}
-        onRemove={onRemove}
-        onCheckout={() => setShowCheckout(true)}
-      />
-
-      {/* checkout modal */}
-      <CheckoutModal
-        open={showCheckout}
-        onClose={() => setShowCheckout(false)}
-        onSubmit={placeOrder}
-      />
-    </div>
-  );
 }

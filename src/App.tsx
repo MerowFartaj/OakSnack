@@ -148,11 +148,13 @@ export default function OakSnackApp() {
       "trident-spearmint": 15,
       "nerds-gummy": 12,
     };
-    const fromLS = loadJSON<Record<string, number>>(LS_INVENTORY, def);
-    // include any new SKUs with 0 by default
-    MENU.forEach(m => { if (fromLS[m.id] === undefined) fromLS[m.id] = 0; });
-    return fromLS;
-  });
+  const fromLS = loadJSON<Record<string, number>>(LS_INV, def);
+// include any new SKUs with default stock if missing
+MENU.forEach(m => {
+  if (fromLS[m.id] === undefined) fromLS[m.id] = def[m.id] ?? 0;
+});
+return fromLS;
+});
   const [revenue, setRevenue] = useState<number>(() => loadJSON<number>(LS_REVENUE, 0));
 
   // runner page

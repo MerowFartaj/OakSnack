@@ -895,14 +895,14 @@ return (
       onOpenCheckout={() => setShowCheckout(true)}
       runnerMode={runnerMode}
       onRunnerToggle={() => setRunnerMode(m => !m)}
-      onRunnerAuth={(pin: string) => {
-        if (pin === TEAM_PIN) {
-          setRunnerMode(true);
-          setPinPrompt("");
-        } else {
-          alert("Incorrect PIN");
-        }
-      }}
+    onRunnerAuth={(pin: string) => {
+  if (pin.trim() === TEAM_PIN) {
+    setRunnerMode(true);
+    setPinPrompt("");
+  } else {
+    alert("Incorrect PIN");
+  }
+}}
       pinPrompt={pinPrompt}
       setPinPrompt={setPinPrompt}
     />
@@ -931,7 +931,7 @@ return (
         <HowItWorks />
 
         {/* menu */}
-        <main className="container mx-auto px-4 pb-28">
+        <main className="container mx-auto px-4 pb-48 md:pb-56">
           <section id="menu" className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="relative">

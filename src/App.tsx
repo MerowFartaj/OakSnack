@@ -3,7 +3,7 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import MenuCard from "./components/MenuCard";
 import CheckoutModal from "./components/CheckoutModal";
-import RunnerDashboard from "./components/RunnerDashboard";
+import RunnerPage from "./components/RunnerPage";
 import {
   Bike,
   Search,

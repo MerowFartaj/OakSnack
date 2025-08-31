@@ -148,19 +148,20 @@ export default function OakSnackApp() {
     setCart([]);
     setShowCheckout(false);
   };
-{runnerMode ? (
-  <RunnerPage
-    orders={orders}
-    inventory={inventory}
-    setInventory={setInventory}
-    onSetStatus={setOrderStatus}
-    onExit={() => setRunnerMode(false)}
-    revenue={revenue}
-    setRevenue={setRevenue}
-  />
-) : (
-  <>
-    {/* normal site continues here */}
+// If runner mode, short-circuit render the runner page
+if (runnerMode) {
+  return (
+    <RunnerPage
+      orders={orders}
+      inventory={inventory}
+      setInventory={setInventory}
+      onSetStatus={setOrderStatus}
+      onExit={() => setRunnerMode(false)}
+      revenue={revenue}
+      setRevenue={setRevenue}
+    />
+  );
+}
 )}
 function setOrderStatus(id: string, status: string) {
   setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));

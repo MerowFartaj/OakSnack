@@ -1,20 +1,17 @@
 // src/utils.ts
 
-// Format numbers as money
+// Money format
 export function currency(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-// Generate short order IDs
+// Short order IDs
 export function shortId() {
   const s = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `OW-${s}`;
 }
 
-// Convert slot ID to a readable label
-export function slotLabel(id: string, SLOTS: { id: string; label: string }[]) {
-  return SLOTS.find((s) => s.id === id)?.label || id;
-}
+// Safe localStorage helpers
 export function loadJSON<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -24,9 +21,9 @@ export function loadJSON<T>(key: string, fallback: T): T {
   }
 }
 
-export function saveJSON<T>(key: string, value: T): void {
+export function saveJSON(key: string, data: unknown) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(data));
   } catch {
     // ignore
   }
